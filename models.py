@@ -36,6 +36,7 @@ class Role(SQLModel, table=True):
     name: str = Field(max_length=255, unique=True, index=True)
 
     users: List["User"] = Relationship(back_populates="role")
+    level: Optional[int] = Field(default=None)
 
 # User model
 class User(SQLModel, table=True):
@@ -98,3 +99,9 @@ class Favourites(SQLModel, table=True):
     product: Optional["Product"] = Relationship(back_populates="favourites")
 
 
+class Permission(SQLModel, table=True):
+    __tablename__ = "permissions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=255, unique=True)
+    level: int = Field()  # Level required for this permission

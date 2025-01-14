@@ -35,27 +35,27 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer", "refresh_token":refresh_token}
 
 # Get all roles
-@router.get("/roleauth/roles", response_model=list[Role], dependencies=[Depends(role_required("owner"))])
+@router.get("/roleauth/roles", response_model=list[Role], dependencies=[Depends(role_required("getroles"))])
 def get_roles(db: Session = Depends(get_db)):
     return db.query(RoleModel).all()
 
 # Admin-only route
-@router.get("/roleauth/admin", dependencies=[Depends(role_required(["admin",]))])
+@router.get("/roleauth/admin", dependencies=[Depends(role_required("admin"))])
 def read_admin_data():
     return {"message": "Welcome, Admin!"}
 
 # Owner-only route
-@router.get("/roleauth/owner", dependencies=[Depends(role_required(["owner",]))])
+@router.get("/roleauth/owner", dependencies=[Depends(role_required("owner"))])
 def read_owner_data():
     return {"message": "Welcome, Owner!"}
 
 # User group 1 route
-@router.get("/roleauth/user-group-1", dependencies=[Depends(role_required(["user group 1",]))])
+@router.get("/roleauth/user-group-1", dependencies=[Depends(role_required("user-group-1"))])
 def read_user_group_1_data():
     return {"message": "Welcome, User Group 1!"}
 
 # User group 2 route
-@router.get("/roleauth/user-group-2", dependencies=[Depends(role_required(["user group 2",]))])
+@router.get("/roleauth/user-group-2", dependencies=[Depends(role_required("user-group-2"))])
 def read_user_group_2_data():
     return {"message": "Welcome, User Group 2!"}
 
@@ -67,7 +67,7 @@ def read_user_group_2_data():
 
 
 #inserting route
-@router.post("/roleauth/products/insert", response_model=Product, dependencies=[Depends(role_required(["admin","owner"]))])
+@router.post("/roleauth/products/insert", response_model=Product, dependencies=[Depends(role_required("insert-product"))])
 def insert_product(product : ProductCreate, db: Session = Depends(get_db)):
     db_product = ProductModel(name = product.name,tag = product.tag,price = product.price)
     db.add(db_product)
@@ -77,14 +77,14 @@ def insert_product(product : ProductCreate, db: Session = Depends(get_db)):
 
 
 #displaying route
-@router.get("/roleauth/products/viewall", response_model=List[Product], dependencies=[Depends(role_required(["admin","owner","user group 1","user group 2"]))])
+@router.get("/roleauth/products/viewall", response_model=List[Product], dependencies=[Depends(role_required("view-products"))])
 def display_products(db: Session = Depends(get_db)):
     return db.query(ProductModel).all()
 
 
 #display with condition
 @router.get("/roleauth/products/view", response_model=list[Product], 
-                                        dependencies=[Depends(role_required(["admin", "owner", "user group 1", "user group 2"]))])
+                                        dependencies=[Depends(role_required("view-products"))])
 def display_products_below_price_limit(price_limit: float = Query(..., description="Price limit for filtering products"), 
                     db: Session = Depends(get_db)):
     # Query the database for products with a price less than the price limit
@@ -94,7 +94,7 @@ def display_products_below_price_limit(price_limit: float = Query(..., descripti
 
 #updating route for admin
 @router.post("/roleauth/products/update", response_model=Product, 
-                                        dependencies=[Depends(role_required(["admin", "owner"]))])
+                                        dependencies=[Depends(role_required("update-product"))])
 def update_product(product_update: ProductUpdate, db: Session = Depends(get_db)):
     db_product = db.query(ProductModel).filter(ProductModel.name == product_update.product_name).first()
     if not db_product:
@@ -108,7 +108,7 @@ def update_product(product_update: ProductUpdate, db: Session = Depends(get_db))
 
 #deleting route for owner
 @router.delete("/roleauth/products/delete", response_model=Product, 
-                                        dependencies=[Depends(role_required(["owner",]))])
+                                        dependencies=[Depends(role_required("delete-product"))])
 def delete_product(product_delete: ProductDelete, db: Session = Depends(get_db)):
     db_product = db.query(ProductModel).filter(ProductModel.name == product_delete.product_name).first()
     if not db_product:
@@ -120,7 +120,7 @@ def delete_product(product_delete: ProductDelete, db: Session = Depends(get_db))
 
 #adding favourites
 @router.post("/roleauth/favourites/add", 
-                                        dependencies=[Depends(role_required(["user group 1","user group 2"]))])
+                                        dependencies=[Depends(role_required("add-fav"))])
 def add_favourite(favourite_add:FavouriteAdd, db:Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_product = db.query(ProductModel).filter(ProductModel.name == favourite_add.product_name).first()
     if not db_product:
@@ -143,7 +143,7 @@ def add_favourite(favourite_add:FavouriteAdd, db:Session = Depends(get_db), curr
 
 #deleting favourites
 @router.delete("/roleauth/favourites/delete",
-                                        dependencies=[Depends(role_required(["user group 1","user group 2"]))])
+                                        dependencies=[Depends(role_required("del-fav"))])
 def delete_favourite(favourite_delete:FavouriteDelete, db:Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_product = db.query(ProductModel).filter(ProductModel.name == favourite_delete.product_name).first()
     if not db_product:
@@ -164,7 +164,7 @@ def delete_favourite(favourite_delete:FavouriteDelete, db:Session = Depends(get_
 
 
 @router.get("/roleauth/favourites/view",
-            dependencies=[Depends(role_required(["user group 1", "user group 2"]))])
+            dependencies=[Depends(role_required("view-fav"))])
 def view_favourites(db: Session = Depends(get_db), current_user = Depends(get_current_user)) -> List[Dict]:
     db_favourites = db.query(FavouritesModel).filter(FavouritesModel.user_id == current_user.id).all()
     
@@ -193,3 +193,9 @@ async def refresh_token(request: RefreshTokenRequest):
     # Create a new access token using the username from the payload
     new_access_token = create_access_token(data={"sub": payload["sub"]}, refresh=True, refresh_token=request.refresh_token)
     return {"access_token": new_access_token, "token_type": "bearer"}
+
+
+
+
+
+
